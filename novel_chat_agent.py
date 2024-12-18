@@ -14,7 +14,7 @@ class NovelChatAgent:
         self.memory = ConversationBufferMemory()
         
         # 初始化中文词嵌入模型
-        self.embeddings = SentenceTransformerEmbeddings(model_name="hfl/chinese-macbert-base")  # 使用中文模型
+        self.embeddings = SentenceTransformerEmbeddings(model_name="/Users/louisliu/.cache/huggingface/hub/models--hfl--chinese-macbert-base/snapshots/a986e004d2a7f2a1c2f5a3edef4e20604a974ed1")  # 使用中文模型
         
         # 初始化Chroma向量数据库
         self.vector_store = Chroma(embedding_function=self.embeddings)
