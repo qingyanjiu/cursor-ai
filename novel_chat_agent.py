@@ -5,6 +5,8 @@ from langchain.memory import ConversationBufferMemory
 from langchain.embeddings import SentenceTransformerEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.prompts import PromptTemplate
+from docx import Document  # 导入用于处理.docx文件的库
+import pdfplumber  # 导入用于处理.pdf文件的库
 
 class NovelChatAgent:
     def __init__(self, novel_text, chunk_size=512):
@@ -29,7 +31,6 @@ class NovelChatAgent:
             seed=42,
         )
     
-        
         self.chain = ConversationChain(llm=self.llm, memory=self.memory)
 
     def add_texts_to_vector_store(self, text, chunk_size):
@@ -39,7 +40,6 @@ class NovelChatAgent:
         self.vector_store.add_texts([chunk.replace("\n", " ") for chunk in chunks])
 
     def ask(self, question):
-        
         # 在向量数据库中查找最相似的文本片段
         similar_texts = self.vector_store.similarity_search(question, k=3)  # 获取最相似的3个片段
         
@@ -50,7 +50,6 @@ class NovelChatAgent:
         # 将找到的文本片段合并为上下文
         context = "\n".join([doc.page_content.replace("\n", " ") for doc in similar_texts])  # 提取文本内容并处理换行
 
-
         # 定义PromptTemplate
         prompt = PromptTemplate.from_template("根据以下内容回答问题：\n\n{context}\n\n问题：{question}\n\n回答：")
         
@@ -59,15 +58,27 @@ class NovelChatAgent:
         return response
 
 def load_novel(file_path):
-    with open(file_path, 'r', encoding='utf-8') as file:
-        return file.read()
+    if file_path.endswith('.txt'):
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return file.read()
+    elif file_path.endswith('.docx'):
+        doc = Document(file_path)
+        return "\n".join([para.text for para in doc.paragraphs])
+    elif file_path.endswith('.pdf'):
+        text = ""
+        with pdfplumber.open(file_path) as pdf:
+            for page in pdf.pages:
+                text += page.extract_text() + "\n"
+        return text
+    else:
+        raise ValueError("Unsupported file format. Please use .txt, .docx, or .pdf files.")
 
 if __name__ == "__main__":
     # 设置代理
     os.environ["HTTP_PROXY"] = "http://localhost:1087"  # 设置代理地址
     os.environ["HTTPS_PROXY"] = "http://localhost:1087"  # 设置HTTPS代理地址
 
-    novel_text = load_novel("/Users/louisliu/Downloads/test/1.txt")  # 替换为你的小说文件路径
+    novel_text = load_novel("/Users/louisliu/Downloads/test/1.docx")  # 替换为你的小说文件路径
     agent = NovelChatAgent(novel_text)
     while True:
         user_input = input("你想问什么？")
